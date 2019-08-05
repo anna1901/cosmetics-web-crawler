@@ -1,15 +1,18 @@
 require 'mechanize'
 require 'csv'
 require "i18n"
+require 'awesome_print'
+require './lib/cosmetics_crawler/mechanize_client'
+require './lib/cosmetics_crawler/product'
 
 I18n.available_locales = [:en]
 
-class Product < Struct.new(:name, :rating, :price, :ingredients); end
+
 
 #a table that will store all the products on that page
 products = []
 
-agent = Mechanize.new
+agent = MechanizeClient.new
 
 main_page = agent.get "https://sylveco.pl/sklep/?filter_przeznaczenie=twarz"
 
@@ -29,9 +32,12 @@ product_list.each do |product_element|
   products << product
 end
 
+ap products
+=begin
 CSV.open("face_cosmetics_sylveco.csv", "w", col_sep: ";") do |csv|
   csv << ["Name", "Rating", "Price", "Ingredients"]
   products.each do |product|
     csv << [product.name, product.rating, product.price, product.ingredients]
   end
 end
+=end
