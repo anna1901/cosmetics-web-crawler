@@ -1,43 +1,16 @@
-require 'mechanize'
-require 'csv'
-require "i18n"
-require 'awesome_print'
-require './lib/cosmetics_crawler/mechanize_client'
-require './lib/cosmetics_crawler/product'
+require './lib/cosmetics_crawler'
+
+BASE_CRAWLING_URL = "https://sylveco.pl/sklep/?filter_przeznaczenie=twarz"
 
 I18n.available_locales = [:en]
 
+class Product < Struct.new(:name, :rating, :price, :ingredients); end
 
+main_page_crawler = Crawler.new(BASE_CRAWLING_URL)
 
-#a table that will store all the products on that page
-products = []
+product_list = main_page_crawler.get_list("ul.shop-products li")
 
-agent = MechanizeClient.new
+products = BuildElements.new(product_list).iterate
 
-main_page = agent.get "https://sylveco.pl/sklep/?filter_przeznaczenie=twarz"
-
-#create a table with all the products on that page
-product_list = main_page.root.css("ul.shop-products li")
-
-product_list.each do |product_element|
-  name = product_element.at_css("h3").text.strip
-  rating = product_element.at_css(".star-rating span").nil? ? "no rating" : product_element.at_css(".star-rating span").text.strip
-  price = product_element.at_css(".product-price span").text.strip[0..-3]
-
-  product_link = "https://sylveco.pl/produkt/#{I18n.transliterate(name).downcase.split.join("-")}/"
-  product_page = agent.get product_link
-  ingredients = product_page.at_css("#tab-inci_tab p").text.strip
-
-  product = Product.new(name, rating, price, ingredients)
-  products << product
-end
-
-ap products
-=begin
-CSV.open("face_cosmetics_sylveco.csv", "w", col_sep: ";") do |csv|
-  csv << ["Name", "Rating", "Price", "Ingredients"]
-  products.each do |product|
-    csv << [product.name, product.rating, product.price, product.ingredients]
-  end
-end
-=end
+formatter = Formatter.new(products)
+formatter.save("face_cosmetics_sylveco.csv")
